@@ -89,9 +89,9 @@ and lines (114-123):
 
 As for the AES: 
            
-           I (Mykola) made a mistake in  their dicription so: 
+           I (Mykola) made a mistake in  their description so: 
 
 AES/CTR: ProcessFile
 
-AES: encryption, decrytion
+AES3481: encryption, decrytion
                         
