@@ -16,7 +16,7 @@ namespace AESWithCTRSpace
         private AES3481 aes;
 
         public const int DECRYPT = 0;
-        public const int ENCRYPT = 1;
+        public const int ENCRYPT = 1; 
 
         private const int BLOCK_SIZE = 16;
 
@@ -36,16 +36,16 @@ namespace AESWithCTRSpace
             else if(keySize <= 24)
                 keySize = 24;
             else if (keySize <= 32)
-                keySize = 32;
+                keySize = 32; 
             else
                 Console.WriteLine("AES Key cannot be more than 32-byte long.");
 
-
+            
 
             byte[] completeKey = new byte[keySize];
             Array.Copy(convertedKey, 0, completeKey, keySize - convertedKey.Length, convertedKey.Length);
             Array.Copy(convertedIV, 0, iv, BLOCK_SIZE - convertedIV.Length, convertedIV.Length);
-
+            
             setIV(iv);
             this.aes = new AES3481(keySize);
             aes.setKey(completeKey);
@@ -82,7 +82,7 @@ namespace AESWithCTRSpace
         {
             if(index == 0)
                 counter[index] += 1;
-
+            
             if(counter[index] == 0xff)
             {
                 counter[index] = 0x0;
@@ -90,7 +90,7 @@ namespace AESWithCTRSpace
             }
             else
                 counter[index] += 1;
-
+            
         }
 
         // Reference: https://docs.microsoft.com/en-us/dotnet/api/system.io.directory.getfiles?view=netcore-3.1
@@ -113,7 +113,9 @@ namespace AESWithCTRSpace
         private void ProcessFile(string path)
         {
             // Doing encryption or decryption here
-            // Console.WriteLine("Processed file '{0}'.", path);
+            // Console.WriteLine("Processed file '{0}'.", path);	
+
+            byte blockFillValue = 0x0f;
 
             this.counter = new byte[BLOCK_SIZE];
             for(int i = 0; i < BLOCK_SIZE; i++)
@@ -121,10 +123,10 @@ namespace AESWithCTRSpace
             byte[] content = File.ReadAllBytes(path);
             byte[] processContent = new byte[content.Length];
             int pointer = 0;
-            while (pointer + BLOCK_SIZE <= content.Length)
-            {
+            while (pointer + BLOCK_SIZE <= content.Length - 1)
+            {   
                 byte[] block = new byte[BLOCK_SIZE];
-                bool AESfailed = false;
+                bool AESfailed = false; 
                 for(int i = 0; i < BLOCK_SIZE && pointer < content.Length; i++)
                 {
                     block[i] = content[pointer];
@@ -134,20 +136,20 @@ namespace AESWithCTRSpace
                 byte[] randomCounter = getUniqueNounceCounter(IV, counter);
                 incrementCounter(BLOCK_SIZE - 1);
                 byte[] aesText = new byte[BLOCK_SIZE];
-
+                
                 if(this.actionMode == ENCRYPT || this.actionMode == DECRYPT)
                 {
                     aes.encrypt(randomCounter);
                     aesText = aes.getCipherTextiInBytes();
                 }
-                else
+                else 
                 {
                     AESfailed = true;
                     Console.WriteLine("AES Failed");
                 }
                 if(!AESfailed)
                     Array.Copy(XORByteArray16(aesText, block), 0, processContent, pointer - BLOCK_SIZE, BLOCK_SIZE);
-            }
+            }  
 
             // Check if it's the end of the content (the remainder of content {content.Length mod 16})
             if (pointer < content.Length)
@@ -156,22 +158,27 @@ namespace AESWithCTRSpace
                 Array.Copy(processContent, tempText, processContent.Length);
                 byte[] block = new byte[BLOCK_SIZE];
                 bool AESfailed = false;
-                for(int i = 0; i < content.Length - pointer; i++)
+                // int numOfByteLeft = content.Length - pointer; 
+                for(int i = 0; i < BLOCK_SIZE; i++)
                 {
-                    block[i] = content[pointer];
+                    if(pointer + i < content.Length)
+                        block[i] = content[pointer + i];
+                    else
+                        block[i] = blockFillValue;
                     // pointer ++;
                 }
+
                 byte[] randomCounter = getUniqueNounceCounter(IV, counter);
                 incrementCounter(BLOCK_SIZE - 1);
 
                 byte[] aesText = new byte[BLOCK_SIZE];
-
+                
                 if(this.actionMode == ENCRYPT || this.actionMode == DECRYPT)
                 {
                     aes.encrypt(randomCounter);
                     aesText = aes.getCipherTextiInBytes();
                 }
-                else
+                else 
                 {
                     AESfailed = true;
                     Console.WriteLine("AES Failed");
@@ -186,6 +193,34 @@ namespace AESWithCTRSpace
                 Array.Copy(tempText, processContent, tempText.Length);
             }
 
+            
+            // Only for Decryption
+            if(this.actionMode == DECRYPT)
+            {
+                int p = processContent.Length - 1;
+                Boolean checkMark = processContent[p] == blockFillValue;
+                for(int i = processContent.Length - 2; i >= 0 && checkMark; i--)
+                {
+                    if(processContent[i] == blockFillValue)
+                    {
+                        p = p - 1;
+                    }
+                    else 
+                    {
+                        checkMark = false;
+                    }
+                }
+                int reducedLength = processContent.Length - (processContent.Length - 1 - p + 1);
+                
+                byte[] tempContent = new byte[reducedLength];
+                if(reducedLength < processContent.Length)
+                {
+                    Array.Copy(processContent, tempContent, reducedLength);
+                    processContent = new byte[reducedLength];
+                    Array.Copy(tempContent, processContent, reducedLength);
+                }
+            }
+
             File.WriteAllBytes(path, processContent);
         }
 
@@ -193,7 +228,7 @@ namespace AESWithCTRSpace
         {
             // ProcessDirectory(this.FolderFullPath);
             ProcessFile(this.path);
-          //  Console.WriteLine("Finish Cryto Operation !!");
+            // Console.WriteLine("Finish Cryto Operation !!");
         }
     }
 }
