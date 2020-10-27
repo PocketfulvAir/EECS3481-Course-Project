@@ -1,19 +1,26 @@
 # EECS3481-Course-Project
 
 Project by: 
+
 Mykola Slobodyanyuk
+
 Huan Ho
+
 Farnad Kazem-zadeh
+
 Jaiveer Singh
+
 Rui Yang Huang
 
+
 Code examples/explanations:
-This section from: 
-Program.cs 
+
+This section is from: Program.cs 
 
 The purpose of all this additional code is so that everysingle file in the folder will be locked with a unique password, so if anyone tries to bruteforce or preform any kind of recovery on the encrypted data they will have to decrypt each file indepantly of each other, sicne each has new password. THe passwords them selves are stored in a File which the code it self creates and writes to, called: "autopasswords". this file is unencrypted in our version for ease of showing the code working, but can also easly be encrypted with its own password at the end, aswell as hidden, and even be sent back to "master control machine" and deleted of the local machine (if this was malware). 
 
 From (lines 165-204):
+
             private static void SelectorForAlgo( string chosenFile, string chosenAlgo, string chosenKey, string chosenAction){
 
             if (chosenKey.Equals(choiceAuto)){
@@ -66,6 +73,7 @@ From (lines 165-204):
                 }
                 
 and lines (114-123):
+
             srcAction = Console.ReadLine();
             if ((srcAction.Equals(choiceDecrypt))|(srcAction.Equals(choiceEncrypt))){
                 choiceLoopOut = 0;
@@ -79,5 +87,5 @@ and lines (114-123):
                 
   The creation of the file will always occur since it uses a path that it knows will always exist. 
 
-
+As for the AES: 
 
