@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 using vsCodeDotNet;//Rc4 file
 using AESWithCTRSpace; //AES file 1
 using AESImplementationSpace;//AES file 2
-
+using ECCoremod; // ECC file
 
 
 namespace myXor
@@ -89,7 +89,7 @@ namespace myXor
 
                 do{ // Choose Algorithm (RSA,ECC):
                   Console.WriteLine("Choose Algorithm (RSA,ECC):");
-                  string srcAlgo = Console.ReadLine();
+                  srcAlgo = Console.ReadLine();
 
                   if ((srcAlgo.Equals(choiceAlgoRSA))|(srcAlgo.Equals(choiceAlgoECC))){
                       choiceLoopOut = 0;
@@ -237,7 +237,36 @@ namespace myXor
                 Console.WriteLine("\n "+chosenAction+" done for " + chosenFile + " with " + chosenAlgo + ".");
 
   }else if(chosenAlgo.Equals(choiceAlgoECC)){
-                Console.WriteLine("ECC not implimented yet");
+
+
+         ECCore ecc = new ECCore();
+
+         if(chosenAction.Equals(choiceEncrypt)){
+            ecc.Encrypt(ranPasswordgen, chosenFile);
+
+         }else if(chosenAction.Equals(choiceDecrypt)){
+            ecc.Decrypt(ranPasswordgen,chosenFile);
+         }else{
+             Console.WriteLine("\n wroung choice for ECC encrypt/decrypt");
+         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   }else if(chosenAlgo.Equals(choiceAlgoRC4)){
                 Rc4 a = new Rc4();
 
@@ -282,6 +311,7 @@ namespace myXor
            public static void TraverseTree(string root, string TchosenAlgo, string TchosenKey, string TchosenAction){ //taken from, but modified https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/file-system/how-to-iterate-through-a-directory-tree
                 // Data structure to hold names of subfolders to be
                 // examined for files.
+
                 Stack<string> dirs = new Stack<string>(20);
 
                 if (!System.IO.Directory.Exists(root))
