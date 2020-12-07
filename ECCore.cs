@@ -85,8 +85,7 @@ namespace ECCoremod
       AESAltered alt;
       public Cryptor()
       {
-          alt = new AESAltered(9999);
-          //to do: set this to be able to be goten from process file
+          alt = new AESAltered();
       }
       // Writing encryption to file using pair key 1
       // variant that adds the unused pair key 2 for decryption to the file to
@@ -177,7 +176,6 @@ namespace ECCoremod
   // to better suit inputs for ECC usage
   class AESAltered
   {
-
       private int actionMode;
       private byte[] IV;
       private byte[] counter;
@@ -188,42 +186,19 @@ namespace ECCoremod
 
       private const int BLOCK_SIZE = 16;
 
-      public AESWithCTR(string initVector)
+      public AESAltered()
       {
-          // if(keyIV == null)
-          //     keyIV = new Dictionary<string, string>();
-          this.path = path;
           this.IV = new byte[BLOCK_SIZE];
-          byte[] iv = new byte[BLOCK_SIZE];
-
-          byte[] convertedIV = Encoding.UTF8.GetBytes(initVector);
-          byte[] convertedKey = key;
-          int keySize = convertedKey.Length;
-          if(keySize <= 16)
-              keySize = 16;
-          else if(keySize <= 24)
-              keySize = 24;
-          else if (keySize <= 32)
-              keySize = 32;
-          else
-              Console.WriteLine("AES Key cannot be more than 32-byte long.");
-
-
-
-          byte[] completeKey = new byte[keySize];
-          Array.Copy(convertedKey, 0, completeKey, keySize - convertedKey.Length, convertedKey.Length);
-          Array.Copy(convertedIV, 0, iv, BLOCK_SIZE - convertedIV.Length, convertedIV.Length);
-
+          RC2CryptoServiceProvider rc2 = new RC2CryptoServiceProvider();
+          rc2.GenerateIV();
+          byte[] iv = rc2.IV;
           setIV(iv);
-          this.aes = new AES3481(keySize);
-          aes.setKey(completeKey);
       }
       public void setAES(byte[] key)
       {
           this.aes = new AES3481(32);
           aes.setKey(key);
       }
-
       public void setAction(int action)
       {
           this.actionMode = action;
@@ -231,32 +206,34 @@ namespace ECCoremod
 
       public void setIV(byte[] iv)
       {
-          // if (iv.Length != BLOCK_SIZE)
-          //     Console.WriteLine("Invalid length of Initial Vector");
-          // else
-          Array.Copy(iv, 0, this.IV, BLOCK_SIZE - iv.Length, iv.Length);
+          if (iv.Length != BLOCK_SIZE) { }
+
+          else
+          {
+              Array.Copy(iv, this.IV, BLOCK_SIZE);
+          }
       }
 
       private byte[] XORByteArray16(byte[] a, byte[] b)
       {
           byte[] result = new byte[16];
 
-          for(int i = 0; i < BLOCK_SIZE; i++)
+          for (int i = 0; i < BLOCK_SIZE; i++)
               result[i] = (byte)(a[i] ^ b[i]);
           return result;
       }
 
       private byte[] getUniqueNounceCounter(byte[] iv, byte[] counter)
       {
-         return XORByteArray16(iv, counter);
+          return XORByteArray16(iv, counter);
       }
 
       private void incrementCounter(int index)
       {
-          if(index == 0)
+          if (index == 0)
               counter[index] += 1;
 
-          if(counter[index] == 0xff)
+          if (counter[index] == 0xff)
           {
               counter[index] = 0x0;
               incrementCounter(index - 1);
@@ -265,20 +242,13 @@ namespace ECCoremod
               counter[index] += 1;
 
       }
-
-      // Reference: https://docs.microsoft.com/en-us/dotnet/api/system.io.directory.getfiles?view=netcore-3.1
-      // Process all files in the directory passed in, recurse on any directories
-      // that are found, and process the files they contain.
-
-      private byte[] ProcessFile(byte[] data)
+      public byte[] ProcessFile(byte[] data)
       {
           // Doing encryption or decryption here
           // Console.WriteLine("Processed file '{0}'.", path);
-
           byte blockFillValue = 0x0f;
-
           this.counter = new byte[BLOCK_SIZE];
-          for(int i = 0; i < BLOCK_SIZE; i++)
+          for (int i = 0; i < BLOCK_SIZE; i++)
               counter[i] = 0x00;
           byte[] content = data;
           byte[] processContent = new byte[content.Length];
@@ -287,17 +257,17 @@ namespace ECCoremod
           {
               byte[] block = new byte[BLOCK_SIZE];
               bool AESfailed = false;
-              for(int i = 0; i < BLOCK_SIZE && pointer < content.Length; i++)
+              for (int i = 0; i < BLOCK_SIZE && pointer < content.Length; i++)
               {
                   block[i] = content[pointer];
-                  pointer ++;
+                  pointer++;
               }
 
               byte[] randomCounter = getUniqueNounceCounter(IV, counter);
               incrementCounter(BLOCK_SIZE - 1);
               byte[] aesText = new byte[BLOCK_SIZE];
 
-              if(this.actionMode == ENCRYPT || this.actionMode == DECRYPT)
+              if (this.actionMode == ENCRYPT || this.actionMode == DECRYPT)
               {
                   aes.encrypt(randomCounter);
                   aesText = aes.getCipherTextiInBytes();
@@ -307,7 +277,7 @@ namespace ECCoremod
                   AESfailed = true;
                   Console.WriteLine("AES Failed");
               }
-              if(!AESfailed)
+              if (!AESfailed)
                   Array.Copy(XORByteArray16(aesText, block), 0, processContent, pointer - BLOCK_SIZE, BLOCK_SIZE);
           }
 
@@ -318,22 +288,19 @@ namespace ECCoremod
               Array.Copy(processContent, tempText, processContent.Length);
               byte[] block = new byte[BLOCK_SIZE];
               bool AESfailed = false;
-              // int numOfByteLeft = content.Length - pointer;
-              for(int i = 0; i < BLOCK_SIZE; i++)
+               for(int i = 0; i < BLOCK_SIZE; i++)
               {
-                  if(pointer + i < content.Length)
+                if(pointer + i < content.Length)
                       block[i] = content[pointer + i];
                   else
                       block[i] = blockFillValue;
-                  // pointer ++;
               }
-
               byte[] randomCounter = getUniqueNounceCounter(IV, counter);
               incrementCounter(BLOCK_SIZE - 1);
 
               byte[] aesText = new byte[BLOCK_SIZE];
 
-              if(this.actionMode == ENCRYPT || this.actionMode == DECRYPT)
+              if (this.actionMode == ENCRYPT || this.actionMode == DECRYPT)
               {
                   aes.encrypt(randomCounter);
                   aesText = aes.getCipherTextiInBytes();
@@ -347,43 +314,37 @@ namespace ECCoremod
               // Console.WriteLine(tempText.Length);
               // Console.WriteLine(pointer);
 
-              if(!AESfailed)
+              if (!AESfailed)
                   Array.Copy(XORByteArray16(aesText, block), 0, tempText, pointer, BLOCK_SIZE);
               processContent = new byte[tempText.Length];
               Array.Copy(tempText, processContent, tempText.Length);
           }
-
-
           // Only for Decryption
-          if(this.actionMode == DECRYPT)
-          {
-              int p = processContent.Length - 1;
-              Boolean checkMark = processContent[p] == blockFillValue;
-              for(int i = processContent.Length - 2; i >= 0 && checkMark; i--)
-              {
-                  if(processContent[i] == blockFillValue)
-                  {
-                      p = p - 1;
-                  }
-                  else
-                  {
-                      checkMark = false;
-                  }
-              }
-              int reducedLength = processContent.Length - (processContent.Length - 1 - p + 1);
+                      if(this.actionMode == DECRYPT)
+                      {
+                          int p = processContent.Length - 1;
+                          Boolean checkMark = processContent[p] == blockFillValue;
+                          for(int i = processContent.Length - 2; i >= 0 && checkMark; i--)
+                          {
+                              if(processContent[i] == blockFillValue)
+                              {
+                                  p = p - 1;
+                              }
+                              else
+                              {
+                                  checkMark = false;
+                              }
+                          }
+                          int reducedLength = processContent.Length - (processContent.Length - 1 - p + 1);
 
-              byte[] tempContent = new byte[reducedLength];
-              if(reducedLength < processContent.Length)
-              {
-                  Array.Copy(processContent, tempContent, reducedLength);
-                  processContent = new byte[reducedLength];
-                  Array.Copy(tempContent, processContent, reducedLength);
-              }
-          }
-
+                          byte[] tempContent = new byte[reducedLength];
+                          if(reducedLength < processContent.Length)
+                          {
+                              Array.Copy(processContent, tempContent, reducedLength);
+                              processContent = new byte[reducedLength];
+                              Array.Copy(tempContent, processContent, reducedLength);
+                          }
+                      }
           return processContent;
       }
-
-
-  }
-  }}
+      }}

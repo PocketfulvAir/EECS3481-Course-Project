@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Text;
 using System.IO;
 using System.Security.Cryptography;
+using System.Numerics;
 
 using vsCodeDotNet;//Rc4 file
 using AESWithCTRSpace; //AES file 1
 using AESImplementationSpace;//AES file 2
 using ECCoremod; // ECC file
-
+using RSA;
 
 namespace myXor
 {
@@ -18,6 +19,11 @@ namespace myXor
         private static String autokeyFileLocation = "\\autopasswords.txt";
         private static String ranIVgen = "";
         private static String ranPasswordgen = "";
+        private static BigInteger RSAp = 0;
+        private static BigInteger RSAq = 0;
+        private static BigInteger RSAd = 0;
+        private static BigInteger RSAn = 0;
+        private static BigInteger RSAe = 0;
         private static int autoDecryptCounter = 0;
         private static String[] autoDecryptLine;
         private static String autoDecryptString = "";
@@ -50,17 +56,6 @@ namespace myXor
           Console.WriteLine("Encryption v02 \n \n");
 
 
-          Console.WriteLine("Input key (\"auto\" to encrypt each file with a new and random key):");  ///maybe add an auto key function later - like for each file in a folder a new key is generated and stored in a txt file
-          srcKey = Console.ReadLine();
-          if (srcKey.Equals(choiceAuto)){
-                currentDir = Directory.GetCurrentDirectory();
-                if(File.Exists(currentDir+autokeyFileLocation)){
-
-                }else{
-                  using (StreamWriter sw = File.CreateText(currentDir+autokeyFileLocation))  { }
-                    Console.WriteLine("File created: "+ autokeyFileLocation);
-                }
-          }
 
           do{ // Input type (sym or asym):
             Console.WriteLine("Input type (sym or asym):");
@@ -106,6 +101,68 @@ namespace myXor
             }
 
           }while(choiceLoopOut == 1);
+          if (srcAlgo.Equals(choiceAlgoRSA)){
+              Console.WriteLine("Input a prime value less then 1.8x10^153 (\"auto\" to encrypt each file with a new and random prime):");  ///maybe add an auto key function later - like for each file in a folder a new key is generated and stored in a txt file
+              srcKey = Console.ReadLine();
+              currentDir = Directory.GetCurrentDirectory();
+                if(File.Exists(currentDir+autokeyFileLocation)){
+                }else{
+                  using (StreamWriter sw = File.CreateText(currentDir+autokeyFileLocation))  { }
+                    Console.WriteLine("File created: "+ autokeyFileLocation);
+                }
+              if (srcKey.Equals(choiceAuto)){
+
+                // implentation for the auto choice is in SelectorForAlgo since we do not need to get up any more strings
+
+              }else{
+
+                if(double.Parse(srcKey) == null){
+                  while(double.Parse(srcKey)!= null){
+                    Console.WriteLine(srcKey+" is not a valid number.\n");
+                    Console.WriteLine("Input a prime value less then 1.8x10^153");
+                    srcKey = Console.ReadLine();
+                  }
+                }
+                RSAp = BigInteger.Parse(srcKey);
+
+                Console.WriteLine("Input a second prime value less then 1.8x10^153:");
+                srcKey = Console.ReadLine();
+                if(double.Parse(srcKey) == null){
+                  while(double.Parse(srcKey)!= null){
+                    Console.WriteLine(srcKey+" is not a valid number.\n");
+                    Console.WriteLine("Input a prime value less then 1.8x10^153:");
+                    srcKey = Console.ReadLine();
+                  }
+              }
+              RSAq = BigInteger.Parse(srcKey);
+
+              Console.WriteLine("Input a valid \"e\" value:");
+              srcKey = Console.ReadLine();
+              if(double.Parse(srcKey) == null){
+                while(double.Parse(srcKey)!= null){
+                  Console.WriteLine(srcKey+" is not a valid number.\n");
+                  Console.WriteLine("Input a valid \"e\" value:");
+                  srcKey = Console.ReadLine();
+                }
+            }
+            RSAe = BigInteger.Parse(srcKey);
+             }
+
+          }else{
+            Console.WriteLine("Input key (\"auto\" to encrypt each file with a new and random key):");  ///maybe add an auto key function later - like for each file in a folder a new key is generated and stored in a txt file
+            srcKey = Console.ReadLine();
+            if (srcKey.Equals(choiceAuto)){
+                  currentDir = Directory.GetCurrentDirectory();
+                  if(File.Exists(currentDir+autokeyFileLocation)){
+
+                  }else{
+                    using (StreamWriter sw = File.CreateText(currentDir+autokeyFileLocation))  { }
+                      Console.WriteLine("File created: "+ autokeyFileLocation);
+                  }
+            }
+          }
+
+
 
 
           do{ // Input action (decrypt/encrypt):
@@ -135,6 +192,7 @@ namespace myXor
 
             if (srcFileFolder.Equals(choiceFolder)){ // add code for folders
                 choiceLoopOut = 0;
+
                 Console.WriteLine("Enter Folder Path: ");
                 srcFolder = Console.ReadLine();
 
@@ -164,7 +222,7 @@ namespace myXor
 
           private static void SelectorForAlgo( string chosenFile, string chosenAlgo, string chosenKey, string chosenAction){
 
-            if (chosenKey.Equals(choiceAuto)){
+            if ((chosenKey.Equals(choiceAuto))||((chosenAlgo.Equals(choiceAlgoRSA))&&(chosenAction.Equals(choiceDecrypt)))){
 
                   if(chosenAction.Equals(choiceEncrypt)){
 
@@ -181,7 +239,6 @@ namespace myXor
                     }
                   }else if (chosenAction.Equals(choiceDecrypt)){
 
-
                       autoDecryptString = autoDecryptLine[autoDecryptCounter];
                       autoDecryptCounter = (autoDecryptCounter + 1);
 
@@ -191,10 +248,17 @@ namespace myXor
                      ranIVgen = autoDecryptLineAES[1];
                      ranPasswordgen = autoDecryptLineAES[0];
 
+                    }else if(chosenAlgo.Equals(choiceAlgoRSA)){
+                     autoDecryptLineAES = autoDecryptString.Split('=');
+                     RSAd = (BigInteger) Double.Parse(autoDecryptLineAES[0]);
+                     RSAn = (BigInteger) Double.Parse(autoDecryptLineAES[1]);
+
+                     Console.WriteLine("\n \n"+RSAd+"="+RSAn+"\n \n");
+
                     }else{
                       ranPasswordgen = autoDecryptString;
-
                     }
+
                   }else{
 
                   }
@@ -237,7 +301,8 @@ namespace myXor
                 Console.WriteLine("\n "+chosenAction+" done for " + chosenFile + " with " + chosenAlgo + ".");
 
   }else if(chosenAlgo.Equals(choiceAlgoECC)){
-
+        // Console.WriteLine("--------------------------------------------------------------------------------------Passing: "+chosenFile);
+        // Console.WriteLine("--------------------------------------------------------------------------------------Passing: "+ranPasswordgen);
 
          ECCore ecc = new ECCore();
 
@@ -249,23 +314,6 @@ namespace myXor
          }else{
              Console.WriteLine("\n wroung choice for ECC encrypt/decrypt");
          }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   }else if(chosenAlgo.Equals(choiceAlgoRC4)){
                 Rc4 a = new Rc4();
@@ -281,10 +329,42 @@ namespace myXor
 
 
   }else if(chosenAlgo.Equals(choiceAlgoRSA)){
-                Console.WriteLine("RSA not implimented yet");
+                RSAstate rsa = new RSAstate();
+                if(chosenAction.Equals(choiceEncrypt)){
+                                    File.WriteAllBytes(chosenFile, rsa.encrypt(File.ReadAllBytes(chosenFile),RSAp,RSAq,RSAe));// RSAp,RSAq));
+                                    RSAd = rsa.getTheD();
+                                    RSAn = rsa.getTheN();
+                                    double safeRSAd = (double) RSAd;
+                                    double safeRSAn = (double) RSAn;
+                                    Console.WriteLine("\n \n The private key Generated is \n  D = "+RSAd+"\n  N = "+RSAn+"\n");
+                                    using (StreamWriter file = File.AppendText(currentDir+autokeyFileLocation)){
+                                        file.WriteLine(safeRSAd+"="+safeRSAn);
+                                    }
+
+                                    // using (StreamWriter file = File.AppendText(currentDir+autokeyFileLocation)){
+                                    //     file.WriteLine(rsa.getTheD() +"="+ rsa.getTheN());
+                                    // }
+
+                        }else if(chosenAction.Equals(choiceDecrypt)){
+                              //  Console.WriteLine("OUTOUT=======================================================@ "+File.ReadAllBytes(chosenFile)[0]+File.ReadAllBytes(chosenFile)[0]+File.ReadAllBytes(chosenFile)[0]+);
+
+
+                              //File.WriteAllBytes(chosenFile, rsa.decrypt(converted,RSAd,RSAn));
+
+                              Console.WriteLine("\n \n The private key used in decryption is \n  D = "+RSAd+"\n  N = "+RSAn+"\n");
+                              RSAd = 3;
+                              RSAn = 33;
+                                File.WriteAllBytes(chosenFile, rsa.decrypt(File.ReadAllBytes(chosenFile),RSAd,RSAn));
+                                  }else{
+                                  Console.WriteLine("\n wroung choice for RCA encrypt/decrypt");
+                                }
+                        Console.WriteLine("\n "+chosenAction+" done for " + chosenFile + " with " + chosenAlgo + ".");
+
+
+
+
   }else{
                 Console.WriteLine("Something went teriably wrong, the Algo selected is: "+ chosenAlgo);
-
               }
 
 
